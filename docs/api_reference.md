@@ -151,3 +151,11 @@ Response:
 ### Error Handling
 The API uses standard HTTP status codes to indicate the outcome of a request. In case of an error, the response body will contain a JSON object with an error property describing the issue.
 
+   ```json
+   1 {
+   2   "error": "string"
+   3 }
+   ```
+
+# Conclusion
+The Nexus Exo Innova API provides a robust and scalable interface for clients to interact with the platform's services. This documentation serves as a reference for developers integrating with the API.
