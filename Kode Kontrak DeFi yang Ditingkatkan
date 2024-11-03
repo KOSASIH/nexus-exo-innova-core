@@ -1,0 +1,103 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+
+contract DeFiPlatform is Ownable {
+    IERC20 public token; // Token yang digunakan dalam platform
+
+    mapping(address => uint256) public stakingBalance;
+    mapping(address => uint256) public borrowingBalance;
+    mapping(address => uint256) public lastStakingTime;
+    mapping(address => bool) public hasStaked;
+    mapping(address => bool) public isStaking;
+
+    address[] public stakers;
+
+    uint256 public stakingRewardRate = 10; // 10% per tahun
+    uint256 public loanRate = 3; // 3% biaya pinjaman
+
+    event TokensStaked(address indexed user, uint256 amount);
+    event TokensUnstaked(address indexed user, uint256 amount);
+    event TokensBorrowed(address indexed user, uint256 amount, uint256 interest);
+    event TokensRepaid(address indexed user, uint256 amount);
+
+    constructor(IERC20 _token) {
+        token = _token;
+    }
+
+    // Fungsi staking token dengan validasi token transfer
+    function stakeTokens(uint256 _amount) external {
+        require(_amount > 0, "Jumlah staking harus lebih besar dari 0");
+
+        // Transfer token dari pengguna ke kontrak
+        require(token.transferFrom(msg.sender, address(this), _amount), "Transfer token gagal");
+
+        stakingBalance[msg.sender] += _amount;
+        lastStakingTime[msg.sender] = block.timestamp;
+
+        if (!hasStaked[msg.sender]) {
+            stakers.push(msg.sender);
+            hasStaked[msg.sender] = true;
+        }
+
+        isStaking[msg.sender] = true;
+        emit TokensStaked(msg.sender, _amount);
+    }
+
+    // Fungsi untuk unstake token dengan reward perhitungan
+    function unstakeTokens() external {
+        uint256 balance = stakingBalance[msg.sender];
+        require(balance > 0, "Anda tidak memiliki staking balance");
+
+        uint256 reward = calculateStakingReward(msg.sender);
+
+        stakingBalance[msg.sender] = 0;
+        isStaking[msg.sender] = false;
+
+        // Transfer reward + balance kepada pengguna
+        require(token.transfer(msg.sender, balance + reward), "Unstake gagal");
+
+        emit TokensUnstaked(msg.sender, balance);
+    }
+
+    // Fungsi untuk meminjam token
+    function borrowTokens(uint256 _amount) external {
+        require(_amount > 0, "Jumlah peminjaman harus lebih besar dari 0");
+
+        uint256 interest = (_amount * loanRate) / 100;
+        uint256 totalDebt = _amount + interest;
+
+        borrowingBalance[msg.sender] += totalDebt;
+
+        require(token.transfer(msg.sender, _amount), "Transfer peminjaman gagal");
+
+        emit TokensBorrowed(msg.sender, _amount, interest);
+    }
+
+    // Fungsi untuk mengembalikan pinjaman
+    function repayTokens(uint256 _amount) external {
+        require(_amount > 0, "Jumlah pengembalian harus lebih besar dari 0");
+        require(borrowingBalance[msg.sender] >= _amount, "Jumlah pengembalian melebihi saldo pinjaman");
+
+        borrowingBalance[msg.sender] -= _amount;
+
+        require(token.transferFrom(msg.sender, address(this), _amount), "Transfer pengembalian gagal");
+
+        emit TokensRepaid(msg.sender, _amount);
+    }
+
+    // Fungsi untuk menghitung reward staking
+    function calculateStakingReward(address _user) public view returns (uint256) {
+        uint256 stakingTime = block.timestamp - lastStakingTime[_user];
+        uint256 balance = stakingBalance[_user];
+        uint256 reward = (balance * stakingRewardRate * stakingTime) / (100 * 365 days);
+        return reward;
+    }
+
+    // Fungsi khusus hanya pemilik kontrak untuk menarik token darurat
+    function emergencyWithdraw(uint256 _amount) external onlyOwner {
+        require(token.transfer(owner(), _amount), "Penarikan darurat gagal");
+    }
+}
