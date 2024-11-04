@@ -1,0 +1,33 @@
+import tensorflow as tf
+import pandas as pd
+import numpy as np
+
+# Contoh data transaksi pengguna (dataset dummy)
+data = {
+    "timestamp": [1, 2, 3, 4, 5, 6],
+    "amount": [100, 50, 200, 300, 250, 400],
+    "transaction_type": [1, 1, 2, 1, 2, 1]  # 1 = deposit, 2 = withdraw
+}
+
+df = pd.DataFrame(data)
+
+# Memisahkan data untuk training
+X = df[["timestamp", "transaction_type"]]
+y = df["amount"]
+
+# Membangun model sederhana untuk prediksi pengeluaran pengguna
+model = tf.keras.Sequential([
+    tf.keras.layers.Dense(32, activation='relu', input_shape=(X.shape[1],)),
+    tf.keras.layers.Dense(16, activation='relu'),
+    tf.keras.layers.Dense(1)
+])
+
+model.compile(optimizer='adam', loss='mean_squared_error')
+
+# Melatih model pada data pengguna
+model.fit(X, y, epochs=50, verbose=0)
+
+# Prediksi pengeluaran berikutnya berdasarkan pola transaksi pengguna
+def predict_next_expenditure(user_data):
+    prediction = model.predict(np.array(user_data).reshape(-1, 2))
+    return prediction[0][0]
