@@ -1,0 +1,26 @@
+Integrasi API
+
+Anda dapat menggunakan framework seperti Flask atau FastAPI untuk menghubungkan backend AI dengan frontend dan kontrak pintar di blockchain
+
+from flask import Flask, request, jsonify
+from web3 import Web3
+
+app = Flask(__name__)
+
+# Konfigurasi Web3 untuk berinteraksi dengan kontrak pintar
+w3 = Web3(Web3.HTTPProvider("https://your_rpc_url"))
+
+@app.route('/predict_expenditure', methods=['POST'])
+def predict_expenditure():
+    user_data = request.json.get("user_data")
+    prediction = predict_next_expenditure(user_data)
+    return jsonify({"predicted_expenditure": prediction})
+
+@app.route('/detect_fraud', methods=['POST'])
+def detect_fraud_api():
+    transaction = request.json.get("transaction")
+    result = detect_fraud(transaction)
+    return jsonify({"fraud_detection": result})
+
+if __name__ == '__main__':
+    app.run(port=5000)
