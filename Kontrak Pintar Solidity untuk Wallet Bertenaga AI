@@ -1,0 +1,85 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+
+contract AIPoweredWallet is Ownable {
+    IERC20 public token;
+
+    struct Transaction {
+        address to;
+        uint256 amount;
+        uint256 timestamp;
+        string transactionType; // "deposit", "withdraw", "transfer"
+    }
+
+    mapping(address => uint256) public balances;
+    mapping(address => Transaction[]) public transactionHistory;
+
+    event Deposit(address indexed user, uint256 amount);
+    event Withdraw(address indexed user, uint256 amount);
+    event Transfer(address indexed from, address indexed to, uint256 amount);
+
+    constructor(IERC20 _token) {
+        token = _token;
+    }
+
+    // Fungsi untuk deposit token ke wallet
+    function deposit(uint256 _amount) external {
+        require(_amount > 0, "Jumlah harus lebih besar dari 0");
+        require(token.transferFrom(msg.sender, address(this), _amount), "Transfer token gagal");
+
+        balances[msg.sender] += _amount;
+        transactionHistory[msg.sender].push(Transaction({
+            to: address(this),
+            amount: _amount,
+            timestamp: block.timestamp,
+            transactionType: "deposit"
+        }));
+
+        emit Deposit(msg.sender, _amount);
+    }
+
+    // Fungsi untuk menarik token dari wallet
+    function withdraw(uint256 _amount) external {
+        require(_amount > 0, "Jumlah harus lebih besar dari 0");
+        require(balances[msg.sender] >= _amount, "Saldo tidak mencukupi");
+
+        balances[msg.sender] -= _amount;
+        require(token.transfer(msg.sender, _amount), "Withdraw gagal");
+
+        transactionHistory[msg.sender].push(Transaction({
+            to: msg.sender,
+            amount: _amount,
+            timestamp: block.timestamp,
+            transactionType: "withdraw"
+        }));
+
+        emit Withdraw(msg.sender, _amount);
+    }
+
+    // Fungsi untuk mentransfer token antar pengguna
+    function transfer(address _to, uint256 _amount) external {
+        require(_to != address(0), "Alamat tujuan tidak valid");
+        require(_amount > 0, "Jumlah harus lebih besar dari 0");
+        require(balances[msg.sender] >= _amount, "Saldo tidak mencukupi");
+
+        balances[msg.sender] -= _amount;
+        balances[_to] += _amount;
+
+        transactionHistory[msg.sender].push(Transaction({
+            to: _to,
+            amount: _amount,
+            timestamp: block.timestamp,
+            transactionType: "transfer"
+        }));
+
+        emit Transfer(msg.sender, _to, _amount);
+    }
+
+    // Fungsi untuk mengambil riwayat transaksi
+    function getTransactionHistory(address _user) external view returns (Transaction[] memory) {
+        return transactionHistory[_user];
+    }
+}

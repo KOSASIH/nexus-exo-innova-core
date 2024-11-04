@@ -1,0 +1,13 @@
+from sklearn.ensemble import IsolationForest
+
+# Dataset transaksi pengguna
+X_anomaly = df[["timestamp", "amount"]]
+
+# Membangun model untuk mendeteksi transaksi anomali
+anomaly_model = IsolationForest(n_estimators=100, contamination=0.1)
+anomaly_model.fit(X_anomaly)
+
+# Fungsi untuk mendeteksi penipuan
+def detect_fraud(transaction):
+    is_fraud = anomaly_model.predict(np.array(transaction).reshape(1, -1))
+    return "Fraudulent" if is_fraud[0] == -1 else "Legitimate"

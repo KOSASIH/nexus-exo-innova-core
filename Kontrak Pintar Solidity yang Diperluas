@@ -1,0 +1,99 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+
+contract AdvancedAIPoweredWallet is Ownable {
+    IERC20 public token;
+
+    struct Transaction {
+        address to;
+        uint256 amount;
+        uint256 timestamp;
+        string transactionType; // "deposit", "withdraw", "transfer"
+    }
+
+    mapping(address => uint256) public balances;
+    mapping(address => Transaction[]) public transactionHistory;
+    mapping(address => bool) public isBlacklisted;
+
+    event Deposit(address indexed user, uint256 amount);
+    event Withdraw(address indexed user, uint256 amount);
+    event Transfer(address indexed from, address indexed to, uint256 amount);
+    event Blacklist(address indexed user);
+    event Unblacklist(address indexed user);
+
+    constructor(IERC20 _token) {
+        token = _token;
+    }
+
+    modifier notBlacklisted() {
+        require(!isBlacklisted[msg.sender], "Address is blacklisted");
+        _;
+    }
+
+    function deposit(uint256 _amount) external notBlacklisted {
+        require(_amount > 0, "Amount must be greater than 0");
+        require(token.transferFrom(msg.sender, address(this), _amount), "Token transfer failed");
+
+        balances[msg.sender] += _amount;
+        transactionHistory[msg.sender].push(Transaction({
+            to: address(this),
+            amount: _amount,
+            timestamp: block.timestamp,
+            transactionType: "deposit"
+        }));
+
+        emit Deposit(msg.sender, _amount);
+    }
+
+    function withdraw(uint256 _amount) external notBlacklisted {
+        require(_amount > 0, "Amount must be greater than 0");
+        require(balances[msg.sender] >= _amount, "Insufficient balance");
+
+        balances[msg.sender] -= _amount;
+        require(token.transfer(msg.sender, _amount), "Withdraw failed");
+
+        transactionHistory[msg.sender].push(Transaction({
+            to: msg.sender,
+            amount: _amount,
+            timestamp: block.timestamp,
+            transactionType: "withdraw"
+        }));
+
+        emit Withdraw(msg.sender, _amount);
+    }
+
+    function transfer(address _to, uint256 _amount) external notBlacklisted {
+        require(_to != address(0), "Invalid destination address");
+        require(_amount > 0, "Amount must be greater than 0");
+        require(balances[msg.sender] >= _amount, "Insufficient balance");
+
+        balances[msg.sender] -= _amount;
+        balances[_to] += _amount;
+
+        transactionHistory[msg.sender].push(Transaction({
+            to: _to,
+            amount: _amount,
+            timestamp: block.timestamp,
+            transactionType: "transfer"
+        }));
+
+        emit Transfer(msg.sender, _to, _amount);
+    }
+
+    function getTransactionHistory(address _user) external view returns (Transaction[] memory) {
+        return transactionHistory[_user];
+    }
+
+    function blacklistUser(address _user) external onlyOwner {
+        isBlacklisted[_user] = true;
+        emit Blacklist(_user);
+    }
+
+    function unblacklistUser(address _user) external onlyOwner {
+        isBlacklisted[_user] = false;
+        emit Unblacklist(_user);
+    }
+}

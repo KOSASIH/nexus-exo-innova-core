@@ -1,0 +1,15 @@
+Untuk deteksi penipuan, kita bisa menggunakan model machine learning yang lebih kompleks seperti Random Forest atau Isolation Forest yang bagus untuk mendeteksi anomali. Berikut
+
+from sklearn.ensemble import IsolationForest
+
+# Dataset transaksi pengguna
+X = df[["timestamp", "amount"]]
+
+# Membangun model untuk mendeteksi transaksi anomali
+model = IsolationForest(n_estimators=100, contamination=0.1)
+model.fit(X)
+
+# Fungsi untuk mendeteksi penipuan
+def detect_fraud(transaction):
+    is_fraud = model.predict(np.array(transaction).reshape(-1, 2))
+    return "Fraudulent" if is_fraud[0] == -1 else "Legitimate"

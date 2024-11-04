@@ -1,0 +1,54 @@
+const { expect } = require("chai");
+const { ethers } = require("hardhat");
+
+describe("DeFiPlatform", function () {
+  let Token, token, DeFiPlatform, defi;
+  let owner, user1, user2;
+
+  beforeEach(async function () {
+    [owner, user1, user2] = await ethers.getSigners();
+
+    // Deploy ERC20 Token
+    Token = await ethers.getContractFactory("Token");
+    token = await Token.deploy("Test Token", "TTK", 1000000);
+
+    // Transfer some tokens to user1 and user2 for testing
+    await token.transfer(user1.address, 1000);
+    await token.transfer(user2.address, 1000);
+
+    // Deploy DeFiPlatform with token address
+    DeFiPlatform = await ethers.getContractFactory("DeFiPlatform");
+    defi = await DeFiPlatform.deploy(token.address);
+  });
+
+  it("should allow staking and reward calculation", async function () {
+    // User1 approves and stakes tokens
+    await token.connect(user1).approve(defi.address, 500);
+    await defi.connect(user1).stakeTokens(500);
+
+    expect(await defi.stakingBalance(user1.address)).to.equal(500);
+
+    // Simulate time passage
+    await network.provider.send("evm_increaseTime", [365 * 24 * 60 * 60]); // 1 year
+    await network.provider.send("evm_mine");
+
+    const reward = await defi.calculateStakingReward(user1.address);
+    expect(reward).to.be.gt(0);
+  });
+
+  it("should allow borrowing and repayment", async function () {
+    // Owner deposits token for borrowing pool
+    await token.connect(owner).transfer(defi.address, 1000);
+
+    // User1 borrows tokens
+    await defi.connect(user1).borrowTokens(100);
+
+    expect(await defi.borrowingBalance(user1.address)).to.be.gt(100);
+
+    // User1 repays loan
+    await token.connect(user1).approve(defi.address, 103); // Include interest
+    await defi.connect(user1).repayTokens(103);
+
+    expect(await defi.borrowingBalance(user1.address)).to.equal(0);
+  });
+});

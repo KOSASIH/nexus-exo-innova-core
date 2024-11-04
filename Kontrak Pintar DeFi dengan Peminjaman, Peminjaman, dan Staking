@@ -1,0 +1,68 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+contract DeFiPlatform {
+    mapping(address => uint256) public stakingBalance;
+    mapping(address => uint256) public borrowingBalance;
+    mapping(address => bool) public hasStaked;
+    mapping(address => bool) public isStaking;
+
+    address[] public stakers;
+    uint256 public interestRate = 5; // 5% per tahun
+    uint256 public stakingRewardRate = 10; // 10% per tahun
+    uint256 public loanRate = 3; // 3% biaya pinjaman
+
+    event TokensStaked(address indexed user, uint256 amount);
+    event TokensUnstaked(address indexed user, uint256 amount);
+    event TokensBorrowed(address indexed user, uint256 amount, uint256 interest);
+    event TokensRepaid(address indexed user, uint256 amount);
+
+    // Fungsi staking token
+    function stakeTokens(uint256 _amount) public {
+        require(_amount > 0, "Jumlah staking harus lebih besar dari 0");
+
+        stakingBalance[msg.sender] += _amount;
+        if (!hasStaked[msg.sender]) {
+            stakers.push(msg.sender);
+        }
+
+        isStaking[msg.sender] = true;
+        hasStaked[msg.sender] = true;
+        emit TokensStaked(msg.sender, _amount);
+    }
+
+    // Fungsi untuk unstake token
+    function unstakeTokens() public {
+        uint256 balance = stakingBalance[msg.sender];
+        require(balance > 0, "Anda tidak memiliki staking balance untuk di unstake");
+
+        stakingBalance[msg.sender] = 0;
+        isStaking[msg.sender] = false;
+        emit TokensUnstaked(msg.sender, balance);
+    }
+
+    // Fungsi untuk meminjam token
+    function borrowTokens(uint256 _amount) public {
+        require(_amount > 0, "Jumlah peminjaman harus lebih besar dari 0");
+
+        uint256 interest = (_amount * loanRate) / 100;
+        borrowingBalance[msg.sender] += _amount + interest;
+        emit TokensBorrowed(msg.sender, _amount, interest);
+    }
+
+    // Fungsi untuk mengembalikan pinjaman
+    function repayTokens(uint256 _amount) public {
+        require(_amount > 0, "Jumlah pengembalian harus lebih besar dari 0");
+        require(borrowingBalance[msg.sender] >= _amount, "Jumlah pengembalian melebihi saldo pinjaman");
+
+        borrowingBalance[msg.sender] -= _amount;
+        emit TokensRepaid(msg.sender, _amount);
+    }
+
+    // Fungsi untuk menghitung reward staking (per tahun)
+    function calculateStakingReward(address _user) public view returns (uint256) {
+        uint256 balance = stakingBalance[_user];
+        uint256 reward = (balance * stakingRewardRate) / 100;
+        return reward;
+    }
+}

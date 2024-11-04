@@ -1,0 +1,33 @@
+from flask import Flask, request, jsonify
+from web3 import Web3
+import json
+
+app = Flask(__name__)
+
+# Web3 konfigurasi (sesuaikan dengan alamat kontrak dan node Ethereum Anda)
+w3 = Web3(Web3.HTTPProvider("https://your_rpc_url"))
+contract_address = "0xYourContractAddress"
+contract_abi = json.loads('Your Contract ABI Here')
+contract = w3.eth.contract(address=contract_address, abi=contract_abi)
+
+@app.route('/predict_expenditure', methods=['POST'])
+def predict_expenditure_api():
+    last_transactions = request.json.get("last_transactions")
+    prediction = predict_expenditure(last_transactions)
+    return jsonify({"predicted_expenditure": prediction})
+
+@app.route('/detect_fraud', methods=['POST'])
+def detect_fraud_api():
+    transaction = request.json.get("transaction")
+    result = detect_fraud(transaction)
+    return jsonify({"fraud_detection": result})
+
+@app.route('/blacklist_user', methods=['POST'])
+def blacklist_user():
+    user_address = request.json.get("user_address")
+    tx_hash = contract.functions.blacklistUser(user_address).transact({'from': w3.eth.accounts[0]})
+    w3.eth.wait_for_transaction_receipt(tx_hash)
+    return jsonify({"status": "User blacklisted", "transaction_hash": tx_hash.hex()})
+
+if __name__ == '__main__':
+    app.run(port=5000)
