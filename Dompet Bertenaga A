@@ -1,0 +1,25 @@
+Desain dan Fitur Utama
+
+1. Kontrak Pintar Wallet (Solidity):
+
+Menyimpan saldo, riwayat transaksi, dan metadata pengguna.
+
+Fungsi untuk deposit, penarikan, transfer, dan pelacakan aktivitas pengguna.
+
+Pembuatan acara (event) untuk setiap transaksi, yang kemudian dianalisis oleh sistem AI untuk mendeteksi pola atau potensi penipuan.
+
+
+
+2. Backend AI (Python):
+
+Modul Python untuk analisis data keuangan, menggunakan TensorFlow atau PyTorch untuk mempelajari kebiasaan transaksi pengguna.
+
+Deteksi Penipuan: Menggunakan algoritme machine learning untuk mendeteksi transaksi mencurigakan.
+
+Wawasan Keuangan: Analisis untuk memberi rekomendasi tentang pengeluaran, alokasi anggaran, atau prediksi pengeluaran di masa mendatang.
+
+
+
+3. Integrasi API dengan Frontend:
+
+REST API yang berinteraksi dengan kontrak pintar dan backend AI untuk mengambil data real-time, serta mengirimkan wawasan dan notifikasi ke pengguna.
