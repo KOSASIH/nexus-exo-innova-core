@@ -1,0 +1,38 @@
+import tensorflow as tf
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import LSTM, Dense
+import numpy as np
+import pandas as pd
+
+# Contoh data transaksi (dataset dummy)
+data = {
+    "timestamp": [1, 2, 3, 4, 5, 6, 7, 8, 9],
+    "amount": [100, 150, 200, 250, 300, 250, 200, 150, 100]
+}
+
+df = pd.DataFrame(data)
+
+# Membentuk data untuk LSTM
+X = []
+y = []
+window_size = 3  # ukuran jendela untuk analisis urutan
+
+for i in range(len(df) - window_size):
+    X.append(df["amount"].values[i:i+window_size])
+    y.append(df["amount"].values[i+window_size])
+
+X = np.array(X)
+y = np.array(y)
+
+# Model LSTM
+model = Sequential()
+model.add(LSTM(50, activation='relu', input_shape=(window_size, 1)))
+model.add(Dense(1))
+model.compile(optimizer='adam', loss='mse')
+
+# Melatih model
+model.fit(X, y, epochs=200, verbose=0)
+
+def predict_expenditure(last_transactions):
+    prediction = model.predict(np.array(last_transactions).reshape(1, window_size, 1))
+    return prediction[0][0]
